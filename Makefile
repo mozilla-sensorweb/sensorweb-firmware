@@ -36,7 +36,7 @@ CXX = $(CROSS_COMPILE)g++
 OBJCOPY = $(CROSS_COMPILE)objcopy
 SIZE = $(CROSS_COMPILE)size
 
-DEFINES += -DUSE_FREERTOS=1
+DEFINES += -DUSE_FREERTOS=1 -Dgcc=1
 
 CPU := cortex-m4
 
@@ -49,10 +49,11 @@ SDK_PATH = external/cc3200-sdk
 DRIVERLIB = $(SDK_PATH)/driverlib
 OSLIB = $(SDK_PATH)/oslib
 FREERTOS = $(SDK_PATH)/third_party/FreeRTOS
+COMMON = $(SDK_PATH)/example/common
 
 CPPFLAGS += $(DEFINES) $(INC)
-CFLAGS += -ffunction-sections -fdata-sections
-CXXFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -ffunction-sections -fdata-sections -Wall -std=c11
+CXXFLAGS += -ffunction-sections -fdata-sections -Wall
 
 INC += -I$(SDK_PATH)
 INC += -I$(SDK_PATH)/inc
@@ -61,17 +62,29 @@ INC += -I$(DRIVERLIB)
 INC += -I$(FREERTOS)/source
 INC += -I$(FREERTOS)/source/include
 INC += -I$(FREERTOS)/source/portable/GCC/ARM_CM4
+INC += -I$(COMMON)
 
 LIBS =
 
 OBJDIR ?= obj
-OBJ := $(OBJDIR)/$(SDK_PATH)/example/common/startup_gcc.o
-OBJ += $(addprefix $(OBJDIR)/src/, \
+
+OBJ := $(addprefix $(OBJDIR)/src/, \
+	ApplicationHooks.o \
+	IPCQueue.o \
 	main.o \
+	pinmux.o \
+	Producer.o \
+	Serial.o \
+	Task.o \
 	)
 
 OBJ += $(addprefix $(OBJDIR)/$(OSLIB)/, \
 	osi_freertos.o \
+	)
+
+OBJ += $(addprefix $(OBJDIR)/$(COMMON)/, \
+	startup_gcc.o \
+	uart_if.o \
 	)
 
 OBJ += $(addprefix $(OBJDIR)/$(FREERTOS)/source/, \
