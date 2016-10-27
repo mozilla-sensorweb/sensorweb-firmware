@@ -150,4 +150,7 @@ $(OBJDIR)/sensorweb.elf: $(OBJ)
 clean:
 	$(Q)$(RM) -rf $(OBJDIR)
 
+.PHONY: test
+test:
+
 -include $(OBJ:.o=.P)
