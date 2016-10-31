@@ -14,6 +14,8 @@
  */
 
 enum IPCMessageStatus {
+  /* Don't wait for consumer and don't signal consumption to producer. */
+  IPC_MESSAGE_FLAG_NOWAIT     = 0x01000000,
   IPC_MESSAGE_STATE_CLEAR    = 0x00000000,
   IPC_MESSAGE_STATE_PRODUCED = 0x10000000,
   IPC_MESSAGE_STATE_PENDING  = 0x20000000,

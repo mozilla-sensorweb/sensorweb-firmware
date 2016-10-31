@@ -5,7 +5,6 @@
 #include "Producer.h"
 
 #include <string.h>
-#include <uart_if.h>
 
 #include "IPCQueue.h"
 #include "Ptr.h"
@@ -31,6 +30,8 @@ Run(ProducerTask* aProducer)
     if (res < 0) {
       return;
     }
+    /* no need to synchronize over static constant buffer */
+    msg.mStatus |= IPC_MESSAGE_FLAG_NOWAIT;
 
     res = IPCMessageQueueConsume(aProducer->mSendQueue, &msg);
     if (res < 0) {
@@ -40,8 +41,8 @@ Run(ProducerTask* aProducer)
     vTaskDelay(TicksOfMSecs(200));
 
     /* While we have been waiting in vTaskDelay(), the consumer
-     * probably processed our message. Waiting for consumption should
-     * have the reply ready.
+     * probably processed our message. Waiting for consumption is
+     * only a formality here, as we set the NOWAIT flag.
      */
     res = IPCMessageWaitForConsumption(&msg);
     if (res < 0) {

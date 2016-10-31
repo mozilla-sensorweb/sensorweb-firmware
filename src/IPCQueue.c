@@ -87,6 +87,11 @@ WaitForConsumption(IPCMessage* aMsg, IPCMessageReply* aReply)
 int
 IPCMessageWaitForReply(IPCMessage* aMsg)
 {
+  if (aMsg->mStatus & IPC_MESSAGE_FLAG_NOWAIT) {
+    /* The consumer won't reply to us, so we're
+     * returning an error here. */
+    return -1;
+  }
   IPCMessageReply reply;
   int res = WaitForConsumption(aMsg, &reply);
   if (res < 0) {
@@ -102,6 +107,13 @@ IPCMessageWaitForReply(IPCMessage* aMsg)
 int
 IPCMessageWaitForConsumption(IPCMessage* aMsg)
 {
+  if (aMsg->mStatus & IPC_MESSAGE_FLAG_NOWAIT) {
+    /* The consumer won't send a reply. We simply reset
+     * the message state and succeed silently. */
+    aMsg->mStatus &= 0x0fffffff;
+    aMsg->mStatus |= IPC_MESSAGE_STATE_CLEAR;
+    return 0;
+  }
   IPCMessageReply reply;
   int res = WaitForConsumption(aMsg, &reply);
   if (res < 0) {
@@ -127,6 +139,11 @@ IPCMessageConsumeAndReply(IPCMessage* aMsg,
                           uint32_t aFlags, uint32_t aLength,
                           void* aBuffer)
 {
+  if (aMsg->mStatus & IPC_MESSAGE_FLAG_NOWAIT) {
+    /* We cannot reply because the producer doesn't
+     * wait for the consumption of the message. */
+    return -1;
+  }
   IPCMessageReply reply = {
     .mDWord0 = aDWord0,
     .mDWord1 = aDWord1,
@@ -139,6 +156,9 @@ IPCMessageConsumeAndReply(IPCMessage* aMsg,
 int
 IPCMessageConsume(IPCMessage* aMsg)
 {
+  if (aMsg->mStatus & IPC_MESSAGE_FLAG_NOWAIT) {
+    return 0; /* Silently succeed */
+  }
   static const IPCMessageReply sReply = {
     .mDWord0 = 0,
     .mDWord1 = 0,
@@ -186,8 +206,15 @@ IPCMessageQueueConsume(IPCMessageQueue* aMsgQueue, IPCMessage* aMsg)
     return -1;
   }
 
+  /* Usually the consumer will send a reply after the message has
+   * been processed. Except if we set the NOWAIT flag. In this case
+   * we reset the message state to CLEAR. */
   aMsg->mStatus &= 0x0fffffff;
-  aMsg->mStatus |= IPC_MESSAGE_STATE_PENDING;
+  if (aMsg->mStatus & IPC_MESSAGE_FLAG_NOWAIT) {
+    aMsg->mStatus |= IPC_MESSAGE_STATE_CLEAR;
+  } else {
+    aMsg->mStatus |= IPC_MESSAGE_STATE_PENDING;
+  }
 
 	BaseType_t res = xQueueSend(aMsgQueue->mWaitQueue, aMsg, 0);
   if (res != pdPASS){
