@@ -19,22 +19,34 @@ Run(ProducerTask* aProducer)
     "This"," is"," a"," SensorWeb"," device"," by"," Mozilla.\n\r"
   };
 
+  IPCMessage msg;
+  int res = IPCMessageInit(&msg);
+  if (res < 0) {
+    return;
+  }
+
   for (unsigned long i = 0;; i = (i + 1) % ArrayLength(sMessage)) {
-    IPCMessage msg;
-    int res = IPCMessageInit(&msg);
+
+    res = IPCMessageProduce(&msg, strlen(sMessage[i]) + 1, (void*)sMessage[i]);
     if (res < 0) {
       return;
     }
-    msg.mBuffer = sMessage[i];
-    msg.mStatus = strlen(msg.mBuffer) + 1;
-
-    IPCMessageProduce(&msg);
 
     res = IPCMessageQueueConsume(aProducer->mSendQueue, &msg);
     if (res < 0) {
       return;
     }
+
     vTaskDelay(TicksOfMSecs(200));
+
+    /* While we have been waiting in vTaskDelay(), the consumer
+     * probably processed our message. Waiting for consumption should
+     * have the reply ready.
+     */
+    res = IPCMessageWaitForConsumption(&msg);
+    if (res < 0) {
+      return;
+    }
   }
 }
 
