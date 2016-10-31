@@ -40,8 +40,6 @@ IPCMessageConsume(IPCMessage* aMsg);
 typedef struct
 {
   QueueHandle_t mWaitQueue;
-
-  unsigned char mBuffer[1024];
 } IPCMessageQueue;
 
 int
