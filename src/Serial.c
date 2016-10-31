@@ -4,9 +4,22 @@
 
 #include "Serial.h"
 
+#include <FreeRTOS.h>
+#include <task.h>
 #include <uart_if.h>
 
 #include "Task.h"
+
+/*
+ * Serial output
+ */
+
+typedef struct
+{
+  IPCMessageQueue mRecvQueue;
+
+  TaskHandle_t mTask;
+} SerialOutTask;
 
 static void
 Run(SerialOutTask* aSerialOut)
@@ -39,7 +52,7 @@ TaskEntryPoint(void* aParam)
   vTaskSuspend(serialOut->mTask);
 }
 
-int
+static int
 SerialOutTaskInit(SerialOutTask* aSerialOut)
 {
   int res = IPCMessageQueueInit(&aSerialOut->mRecvQueue);
@@ -51,7 +64,7 @@ SerialOutTaskInit(SerialOutTask* aSerialOut)
   return 0;
 }
 
-int
+static int
 SerialOutTaskSpawn(SerialOutTask* aSerialOut)
 {
   BaseType_t res = xTaskCreate(TaskEntryPoint, "serial-out",
@@ -61,4 +74,31 @@ SerialOutTaskSpawn(SerialOutTask* aSerialOut)
     return -1;
   }
   return 0;
+}
+
+/*
+ * Public interfaces
+ */
+
+static SerialOutTask sSerialOutTask;
+
+int
+SerialInit()
+{
+  /*
+   * Create the output task
+   */
+  if (SerialOutTaskInit(&sSerialOutTask) < 0) {
+    return -1;
+  }
+  if (SerialOutTaskSpawn(&sSerialOutTask) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
+IPCMessageQueue*
+GetSerialOutQueue()
+{
+  return &sSerialOutTask.mRecvQueue;
 }

@@ -70,6 +70,7 @@ OBJDIR ?= obj
 
 OBJ := $(addprefix $(OBJDIR)/src/, \
 	ApplicationHooks.o \
+	FormattedIO.o \
 	IPCQueue.o \
 	main.o \
 	pinmux.o \

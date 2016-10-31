@@ -5,20 +5,15 @@
 #pragma once
 
 #include <FreeRTOS.h>
-#include <queue.h>
 #include <task.h>
-
-#include "IPCQueue.h"
 
 typedef struct
 {
-  IPCMessageQueue* mSendQueue;
-
   TaskHandle_t mTask;
 } ProducerTask;
 
 int
-ProducerTaskInit(ProducerTask* aProducer, IPCMessageQueue* aSendQueue);
+ProducerTaskInit(ProducerTask* aProducer);
 
 int
 ProducerTaskSpawn(ProducerTask* aProducer);

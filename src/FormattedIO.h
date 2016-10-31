@@ -4,13 +4,10 @@
 
 #pragma once
 
-#include "IPCQueue.h"
+#include <stdarg.h>
 
 int
-SerialInit(void);
+Print(const char* fmt, ...);
 
-/* Returns the message queue for output of over the serial line. This
- * is a singleton.
- */
-IPCMessageQueue*
-GetSerialOutQueue(void);
+int
+VPrint(const char* fmt, va_list ap);
