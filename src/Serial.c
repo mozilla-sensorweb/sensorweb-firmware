@@ -24,7 +24,6 @@ typedef struct
 static void
 Run(SerialOutTask* aSerialOut)
 {
-  InitTerm();
   ClearTerm();
 
   for (;;) {
@@ -85,6 +84,8 @@ static SerialOutTask sSerialOutTask;
 int
 SerialInit()
 {
+  InitTerm();
+
   /*
    * Create the output task
    */
