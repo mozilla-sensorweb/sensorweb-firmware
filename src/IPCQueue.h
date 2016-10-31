@@ -27,6 +27,9 @@ typedef struct
 int
 IPCMessageInit(IPCMessage* aMsg);
 
+uint32_t
+IPCMessageGetBufferLength(const IPCMessage* aMsg);
+
 int
 IPCMessageProduce(IPCMessage* aMsg);
 

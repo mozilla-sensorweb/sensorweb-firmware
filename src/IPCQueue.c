@@ -19,6 +19,12 @@ IPCMessageInit(IPCMessage* aMsg)
   return 0;
 }
 
+uint32_t
+IPCMessageGetBufferLength(const IPCMessage* aMsg)
+{
+  return aMsg->mStatus & 0x00ffffff;
+}
+
 int
 IPCMessageProduce(IPCMessage* aMsg)
 {
