@@ -52,8 +52,8 @@ FREERTOS = $(SDK_PATH)/third_party/FreeRTOS
 COMMON = $(SDK_PATH)/example/common
 
 CPPFLAGS += $(DEFINES) $(INC)
-CFLAGS += -ffunction-sections -fdata-sections -Wall -std=c11
-CXXFLAGS += -ffunction-sections -fdata-sections -Wall
+CFLAGS += -Os -ffunction-sections -fdata-sections -Wall -std=c11
+CXXFLAGS += -Os -ffunction-sections -fdata-sections -Wall
 
 INC += -I$(SDK_PATH)
 INC += -I$(SDK_PATH)/inc
