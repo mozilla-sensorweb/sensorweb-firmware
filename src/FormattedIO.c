@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FormattedIO.h"
+#include <StrPrintf.h>
 #include <stdio.h>
 #include "Serial.h"
 
@@ -54,13 +55,93 @@ Print(const char* fmt, ...)
   return res;
 }
 
+typedef struct
+{
+  char* mBuf;
+  size_t mLen;
+} StrBuf;
+
+static int
+PutStrBuf(void* aParam, int aChar)
+{
+  StrBuf* buf = aParam;
+
+  if (!buf->mLen) {
+    return -1;
+  } else if (buf->mLen == 1) {
+    aChar = '\0'; /* always terminate string buffer */
+  }
+
+  *buf->mBuf = aChar;
+  ++buf->mBuf;
+  --buf->mLen;
+
+  return 1;
+}
+
 int
 VPrint(const char* fmt, va_list ap)
 {
   char buf[128];
-  int res = vsnprintf(buf, sizeof(buf), fmt, ap);
+  StrBuf strBuf = {
+    .mBuf = buf,
+    .mLen = sizeof(buf)
+  };
+  int res = vStrXPrintf(PutStrBuf, &strBuf, fmt, ap);
   if (res < 0) {
     return -1;
   }
-  return PrintIPC(res, buf);
+  uint32_t len = sizeof(buf) - strBuf.mLen;
+  res = PrintIPC(len, buf);
+  if (res < 0) {
+    return -1;
+  }
+  return len;
+}
+
+static int
+PutSerial(void* aParam, int aChar)
+{
+  SerialPutChar(aChar);
+  return 0;
+}
+
+int
+_Print(const char* fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+  int res = _VPrint(fmt, ap);
+  va_end(ap);
+
+  return res;
+}
+
+int
+_VPrint(const char* fmt, va_list ap)
+{
+  int res = vStrXPrintf(PutSerial, NULL, fmt, ap);
+  if (res < 0) {
+    return -1;
+  }
+  return res;
+}
+
+int
+PrintFromISR(const char* fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+  int res = VPrintFromISR(fmt, ap);
+  va_end(ap);
+
+  return res;
+}
+
+int
+VPrintFromISR(const char* fmt, va_list ap)
+{
+  return _VPrint(fmt, ap);
 }

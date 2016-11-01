@@ -11,3 +11,17 @@ Print(const char* fmt, ...);
 
 int
 VPrint(const char* fmt, va_list ap);
+
+int
+PrintFromISR(const char* fmt, ...);
+
+int
+VPrintFromISR(const char* fmt, va_list ap);
+
+/* Internal functions for debugging; don't use in production code. */
+
+int
+_Print(const char* fmt, ...);
+
+int
+_VPrint(const char* fmt, va_list ap);
