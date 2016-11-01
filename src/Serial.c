@@ -4,9 +4,15 @@
 
 #include "Serial.h"
 
+#include <hw_memmap.h>
+#include <hw_types.h>
+#include <prcm.h>
+#include <rom_map.h>
+#include <uart.h>
+#include <uart_if.h>
+
 #include <FreeRTOS.h>
 #include <task.h>
-#include <uart_if.h>
 
 #include "Task.h"
 
@@ -21,6 +27,20 @@ typedef struct
   TaskHandle_t mTask;
 } SerialOutTask;
 
+void
+SerialPutChar(int c)
+{
+  MAP_UARTCharPut(CONSOLE, c);
+}
+
+void
+SerialPutString(size_t aLength, const char* aString)
+{
+  for (const char* end = aString + aLength; aString < end; ++aString) {
+    SerialPutChar(*aString);
+  }
+}
+
 static void
 Run(SerialOutTask* aSerialOut)
 {
@@ -32,7 +52,8 @@ Run(SerialOutTask* aSerialOut)
     if (res < 0) {
       return;
     }
-    Report(msg.mBuffer);
+
+    SerialPutString(IPCMessageGetBufferLength(&msg), msg.mBuffer);
 
     IPCMessageConsume(&msg);
   }

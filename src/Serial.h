@@ -9,6 +9,12 @@
 int
 SerialInit(void);
 
+void
+SerialPutChar(int c);
+
+void
+SerialPutString(size_t aLength, const char* aString);
+
 /* Returns the message queue for output of over the serial line. This
  * is a singleton.
  */
