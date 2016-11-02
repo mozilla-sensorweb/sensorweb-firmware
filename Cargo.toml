@@ -7,6 +7,7 @@ authors = ["Dave Hylands <dhylands@gmail.com>"]
 cc3200 = { path = "cc3200-rs" }
 freertos_alloc = { path = "cc3200-rs/freertos_alloc" }
 freertos_rs = "0.1"
+sensorweb-sys = { path = "sensorweb-sys" }
 
 [profile.dev]
 panic = "abort"

@@ -14,6 +14,7 @@ extern crate cc3200;
 extern crate alloc;
 extern crate freertos_rs;
 extern crate freertos_alloc;
+extern crate sensorweb_sys;
 
 use cc3200::cc3200::{Board, Utils, LedEnum, LedName};
 
@@ -35,6 +36,10 @@ pub fn start() -> ! {
     Board::init_term();
     Board::clear_term();
     Board::message("CC3200 Sample code\n");
+
+    unsafe {
+        sensorweb_sys::sensorweb_test_func();
+    }
 
     let queue = Arc::new(Queue::new(10).unwrap());
     let _producer = {
