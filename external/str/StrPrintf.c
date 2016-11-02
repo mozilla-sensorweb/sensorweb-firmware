@@ -35,7 +35,7 @@
 
 /* ---- Include Files ---------------------------------------------------- */
 
-#include "Str.h"
+#include "StrPrintf.h"
 #include <limits.h>
 #include <string.h>
 

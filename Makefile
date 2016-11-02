@@ -50,6 +50,7 @@ DRIVERLIB = $(SDK_PATH)/driverlib
 OSLIB = $(SDK_PATH)/oslib
 FREERTOS = $(SDK_PATH)/third_party/FreeRTOS
 COMMON = $(SDK_PATH)/example/common
+STR = external/str
 
 CPPFLAGS += $(DEFINES) $(INC)
 CFLAGS += -Os -ffunction-sections -fdata-sections -Wall -std=c11
@@ -63,6 +64,7 @@ INC += -I$(FREERTOS)/source
 INC += -I$(FREERTOS)/source/include
 INC += -I$(FREERTOS)/source/portable/GCC/ARM_CM4
 INC += -I$(COMMON)
+INC += -I$(STR)
 
 LIBS =
 
@@ -122,6 +124,10 @@ OBJ += $(addprefix $(OBJDIR)/$(DRIVERLIB)/, \
 	udma.o \
 	utils.o \
 	wdt.o \
+	)
+
+OBJ += $(addprefix $(OBJDIR)/$(STR)/, \
+	StrPrintf.o \
 	)
 
 .PHONY: all
