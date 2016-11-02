@@ -1,0 +1,18 @@
+[package]
+name = "sensorweb-firmware"
+version = "0.1.0"
+authors = ["Dave Hylands <dhylands@gmail.com>"]
+
+[dependencies]
+cc3200 = { path = "cc3200-rs" }
+freertos_alloc = { path = "cc3200-rs/freertos_alloc" }
+freertos_rs = "0.1"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+# Note: gcc has some codegen issues with -O3
+opt-level = "s"
+debug = true
+panic = "abort"
