@@ -4,21 +4,19 @@
 
 #pragma once
 
-#include <FreeRTOS.h>
-#include <queue.h>
-#include <task.h>
-
 #include "IPCQueue.h"
 
-typedef struct
-{
-  IPCMessageQueue mRecvQueue;
-
-  TaskHandle_t mTask;
-} SerialOutTask;
-
 int
-SerialOutTaskInit(SerialOutTask* aSerialOut);
+SerialInit(void);
 
-int
-SerialOutTaskSpawn(SerialOutTask* aSerialOut);
+void
+SerialPutChar(int c);
+
+void
+SerialPutString(size_t aLength, const char* aString);
+
+/* Returns the message queue for output of over the serial line. This
+ * is a singleton.
+ */
+IPCMessageQueue*
+GetSerialOutQueue(void);

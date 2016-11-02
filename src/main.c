@@ -37,12 +37,7 @@ main(void)
    * Create the output task
    */
 
-  static SerialOutTask serialOutTask;
-
-  if (SerialOutTaskInit(&serialOutTask) < 0) {
-    return EXIT_FAILURE;
-  }
-  if (SerialOutTaskSpawn(&serialOutTask) < 0) {
+  if (SerialInit() < 0) {
     return EXIT_FAILURE;
   }
 
@@ -52,7 +47,7 @@ main(void)
 
   static ProducerTask producerTask;
 
-  if (ProducerTaskInit(&producerTask, &serialOutTask.mRecvQueue) < 0) {
+  if (ProducerTaskInit(&producerTask) < 0) {
     return EXIT_FAILURE;
   }
   if (ProducerTaskSpawn(&producerTask) < 0) {

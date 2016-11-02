@@ -3,12 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Producer.h"
-
-#include <string.h>
-#include <uart_if.h>
-
-#include "IPCQueue.h"
 #include "Ptr.h"
+#include "FormattedIO.h"
 #include "Task.h"
 #include "Ticks.h"
 
@@ -20,20 +16,7 @@ Run(ProducerTask* aProducer)
   };
 
   for (unsigned long i = 0;; i = (i + 1) % ArrayLength(sMessage)) {
-    IPCMessage msg;
-    int res = IPCMessageInit(&msg);
-    if (res < 0) {
-      return;
-    }
-    msg.mBuffer = sMessage[i];
-    msg.mStatus = strlen(msg.mBuffer) + 1;
-
-    IPCMessageProduce(&msg);
-
-    res = IPCMessageQueueConsume(aProducer->mSendQueue, &msg);
-    if (res < 0) {
-      return;
-    }
+    Print("%s", sMessage[i]);
     vTaskDelay(TicksOfMSecs(200));
   }
 }
@@ -52,9 +35,8 @@ TaskEntryPoint(void* aParam)
 }
 
 int
-ProducerTaskInit(ProducerTask* aProducer, IPCMessageQueue* aSendQueue)
+ProducerTaskInit(ProducerTask* aProducer)
 {
-  aProducer->mSendQueue = aSendQueue;
   aProducer->mTask = NULL;
 
   return 0;
