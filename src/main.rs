@@ -16,7 +16,7 @@ extern crate freertos_rs;
 extern crate freertos_alloc;
 extern crate sensorweb_sys;
 
-use cc3200::cc3200::{Board, Utils, LedEnum, LedName};
+use cc3200::cc3200::{Board, Console, Utils, LedEnum, LedName};
 
 use alloc::arc::Arc;
 use freertos_rs::{CurrentTask, Duration, Task, Queue};
@@ -33,9 +33,9 @@ pub fn start() -> ! {
 
     Board::init();
 
-    Board::init_term();
-    Board::clear_term();
-    Board::message("CC3200 Sample code\n");
+    Console::init_term();
+    Console::clear_term();
+    Console::message("CC3200 Sample code\n");
 
     unsafe {
         sensorweb_sys::sensorweb_test_func();
@@ -66,9 +66,9 @@ pub fn start() -> ! {
             .start(move || {
                 loop {
                     let msg = queue.receive(Duration::ms(2000)).unwrap();
-                    Board::message("Received: ");
-                    Board::message(msg);
-                    Board::message("\n");
+                    Console::message("Received: ");
+                    Console::message(msg);
+                    Console::message("\n");
                 }
             })
             .unwrap()
