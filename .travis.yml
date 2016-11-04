@@ -1,20 +1,23 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# We install rust ourselves because travis doesn't use rustup yet and that
+# prevents installation of the rust-src component.
 
-dist: trusty
+sudo: true
 
-language: c
+os:
+  - linux
 
-before_install:
-  - sudo add-apt-repository -y ppa:terry.guo/gcc-arm-embedded
-  - sudo apt-get update -qq
+dist: rusty
 
-install:
-  - sudo apt-get install -y --force-yes gcc-arm-none-eabi
+cache:
+  - apt
 
-before_script:
-  - arm-none-eabi-gcc --version
+addons:
+    apt:
+      sources:
+        - sourceline: 'deb http://archive.ubuntu.com/ubuntu rusty universe'
+      packages:
+        - gcc-arm-none-eabi
+        - libnewlib-arm-none-eabi
 
 script:
-  - make && make test
+  - ./scripts/travis.sh
