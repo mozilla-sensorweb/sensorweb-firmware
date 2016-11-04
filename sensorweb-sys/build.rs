@@ -1,5 +1,6 @@
 extern crate gcc;
 fn main() {
+  // See: http://alexcrichton.com/gcc-rs/gcc/index.html for docs on the gcc crate.
   gcc::Config::new()
     .compiler("arm-none-eabi-gcc")
     .define("gcc", None)
