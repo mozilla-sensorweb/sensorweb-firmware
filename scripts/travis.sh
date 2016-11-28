@@ -8,7 +8,7 @@ chmod +x ./rustup.sh
 export PATH=/home/travis/.cargo/bin:$PATH
 rustup default nightly
 rustup component add rust-src
-cargo install xargo
+cargo install xargo --verbose
 cp src/config.rs.sample src/config.rs
 ./build.sh
 ./build.sh --release
