@@ -26,11 +26,14 @@ extern crate log;
 extern crate collections;
 
 use cc3200::cc3200::{Board, I2C, I2COpenMode, LedEnum};
+use cc3200::format::*;
 use cc3200::simplelink::{self, SimpleLink};
 use cc3200::socket_channel::SocketChannel;
 
 use cc3200::i2c_devices::TemperatureSensor;
 use cc3200::tmp006::TMP006;
+
+use core::str;
 
 use freertos_rs::{CurrentTask, Duration, Task};
 use smallhttp::Client;
@@ -40,6 +43,14 @@ static VERSION: &'static str = "1.0";
 
 mod config;
 mod wlan;
+
+fn buf_find(buf: &[u8], needle: &str) -> Option<usize> {
+    if let Ok(s) = str::from_utf8(buf) {
+        s.find(needle)
+    } else {
+        None
+    }
+}
 
 fn run() -> Result<(), wlan::Error> {
 
@@ -55,19 +66,37 @@ fn run() -> Result<(), wlan::Error> {
              config::SENSOR_READING_COUNT);
 
     for _ in 0..config::SENSOR_READING_COUNT {
-        let temperature: u32 = (temp_sensor.get_temperature().unwrap() * 10.0) as u32;
-        info!("Feels like {}.{} C", temperature / 10, temperature % 10);
-        let mut client = Client::new(SocketChannel::new().unwrap());
-        let response = client.get(config::SERVER_URL)
-            .open()
-            .unwrap()
-            .send(&[])
-            .unwrap()
-            .response(|_| false)
-            .unwrap();
-        let mut buffer = [0u8; 256];
-        info!("Received {}",
-              response.body.read_string_to_end(&mut buffer).unwrap());
+        let temperature = temp_sensor.get_temperature().unwrap();
+
+        // Format a simple json payload that we'll POST to the server
+        let mut buf: [u8; 24] = [b' '; 24];
+        let json = b"{ \"temperature\": @@@@@ }";
+        buf[0..json.len()].copy_from_slice(json);
+        let num_tmpl = "@@@@@";
+        let num_idx = buf_find(&buf, num_tmpl).unwrap();
+        if format_float_into(&mut buf[num_idx..num_idx + num_tmpl.len()],
+                             temperature,
+                             1 /* digit after decimal */) {
+            info!("Feels like {} C",
+                  str::from_utf8(&buf[num_idx..num_idx + num_tmpl.len()]).unwrap());
+            info!("Sending {}", str::from_utf8(&buf).unwrap());
+
+            let mut client = Client::new(SocketChannel::new().unwrap());
+            let response = client.post(config::SERVER_URL)
+                .open()
+                .unwrap()
+                .send(json)
+                .unwrap()
+                .response(|_| false) // Not interested in any header.
+                .unwrap();
+            let mut buffer = [0u8; 256];
+            info!("Received {}",
+                  response.body.read_string_to_end(&mut buffer).unwrap());
+        } else {
+            error!("Failed to format temperature float.");
+        }
+
+
         CurrentTask::delay(Duration::ms(1000))
     }
 
