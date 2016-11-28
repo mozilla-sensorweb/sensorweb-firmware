@@ -1,0 +1,17 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+
+use cc3200::simplelink::SlSecParams;
+
+// The default SSID you want to connect to.
+pub const SSID: &'static str = "OpenWireless.org";
+
+pub fn security_params() -> Option<SlSecParams> {
+    // If using an open access point, just return None
+    Some(SlSecParams::wpa2("YOUR-PASSWORD-HERE"))
+    //None
+}
+
+pub const SENSOR_READING_COUNT: u32 = 10;
+pub const SERVER_URL: &'static str = "http://10.252.33.211:8000/endpoint";
