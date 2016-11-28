@@ -7,7 +7,9 @@ authors = ["Dave Hylands <dhylands@gmail.com>"]
 cc3200 = { path = "cc3200-rs" }
 freertos_alloc = { path = "cc3200-rs/freertos_alloc" }
 freertos_rs = "0.1"
+log = { version = "0.3", default-features = false }
 sensorweb-sys = { path = "sensorweb-sys" }
+smallhttp = { git = "https://github.com/fabricedesre/smallhttp.git" }
 
 [profile.dev]
 panic = "abort"
