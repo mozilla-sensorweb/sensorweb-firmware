@@ -17,10 +17,10 @@ use smallhttp::traits::Channel;
 fn update_rtc() {
     info!("Checking time from server at {}", config::RTC_URL);
 
-    let text = "{\"time\":1480457702,\"isoDate\":\"2016-11-29T22:15:02Z\"}";
-    let result = Json::parse(text).unwrap();
-    info!("parsed : {:?}", result);
-    return;
+    // let text = "{\"time\":1480457702,\"isoDate\":\"2016-11-29T22:15:02Z\"}";
+    // let result = Json::parse(text).unwrap();
+    // info!("parsed : {:?}", result);
+    // return;
 
     let start = RTC::get();
     let mut client = Client::new(SocketChannel::new().unwrap());
@@ -36,11 +36,11 @@ fn update_rtc() {
     let len = buffer.len();
     if let Ok(text) = response.body.read_string_to_end(&mut buffer) {
         let end = RTC::get();
-        let result = Json::parse(text).unwrap();
-        info!("Received response from {} in {}s : {:?}",
+        info!("Received response from {} in {}s : {}",
               config::RTC_URL,
               end - start,
-              result);
+              text);
+        let result = Json::parse(text).unwrap();
     } else {
         error!("Failed to read answer from {}", config::RTC_URL);
     }
