@@ -16,7 +16,7 @@ extern crate cc3200;
 extern crate alloc;
 extern crate freertos_rs;
 extern crate freertos_alloc;
-
+extern crate simple_json;
 extern crate smallhttp;
 
 #[macro_use]
@@ -25,6 +25,7 @@ extern crate log;
 #[macro_use]
 extern crate collections;
 
+use alloc::arc::Arc;
 use cc3200::cc3200::{Board, I2C, I2COpenMode, LedEnum};
 use cc3200::format::*;
 use cc3200::simplelink::{self, SimpleLink};
@@ -35,13 +36,14 @@ use cc3200::tmp006::TMP006;
 
 use core::str;
 
-use freertos_rs::{CurrentTask, Duration, Task};
+use freertos_rs::{CurrentTask, Duration, Queue, Task};
 use smallhttp::Client;
 use smallhttp::traits::Channel;
 
 static VERSION: &'static str = "1.0";
 
 mod config;
+mod rtc_task;
 mod wlan;
 
 fn buf_find(buf: &[u8], needle: &str) -> Option<usize> {
@@ -58,6 +60,14 @@ fn run() -> Result<(), wlan::Error> {
 
     try!(SimpleLink::start_spawn_task());
     try!(wlan::wlan_station_mode());
+
+    // Wifi is up, set up the RTC task and ask for an update.
+    let rtc_queue = Arc::new(Queue::new(10).unwrap());
+    rtc_task::setup_rtc_updater(rtc_queue.clone())
+        .and_then(|_| rtc_queue.send(0, Duration::ms(15)));
+
+    // FIXME: remove.
+    loop {}
 
     let i2c = I2C::open(I2COpenMode::MasterModeFst).unwrap();
     let temp_sensor = TMP006::default(&i2c).unwrap();

@@ -4,9 +4,11 @@ version = "0.1.0"
 authors = ["Dave Hylands <dhylands@gmail.com>"]
 
 [dependencies]
-cc3200 = { path = "cc3200-rs" }
+# cc3200 = { path = "cc3200-rs" }
+cc3200 = { git = "https://github.com/fabricedesre/cc3200-rs.git", branch = "mulodi4" }
 freertos_alloc = { path = "cc3200-rs/freertos_alloc" }
 freertos_rs = "0.1"
+simple_json = { git = "https://github.com/fabricedesre/json-rs.git", branch = "nostd", features = ["core"] }
 log = { version = "0.3", default-features = false }
 sensorweb-sys = { path = "sensorweb-sys" }
 smallhttp = { git = "https://github.com/fabricedesre/smallhttp.git" }
