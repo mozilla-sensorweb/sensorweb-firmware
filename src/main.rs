@@ -26,19 +26,12 @@ extern crate log;
 extern crate collections;
 
 use alloc::arc::Arc;
-use cc3200::cc3200::{Board, I2C, I2COpenMode, LedEnum};
-use cc3200::format::*;
+use cc3200::cc3200::{Board, LedEnum};
 use cc3200::simplelink::{self, SimpleLink};
-use cc3200::socket_channel::SocketChannel;
-
-use cc3200::i2c_devices::TemperatureSensor;
-use cc3200::tmp006::TMP006;
 
 use core::str;
 
 use freertos_rs::{CurrentTask, Duration, Queue, Task};
-use smallhttp::Client;
-use smallhttp::traits::Channel;
 
 static VERSION: &'static str = "1.0";
 

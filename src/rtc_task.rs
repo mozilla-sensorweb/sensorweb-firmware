@@ -8,8 +8,6 @@
 use alloc::arc::Arc;
 use cc3200::rtc::RTC;
 use cc3200::socket_channel::SocketChannel;
-use cc3200::time::Tm;
-use collections::String;
 use config;
 use core::str;
 use freertos_rs::{Duration, FreeRtosError, Task, Queue};
@@ -29,7 +27,6 @@ fn update_rtc() -> Result<(), ()> {
         .response(|_| false)?;
 
     let mut buffer = [0u8; 128];
-    let len = buffer.len();
     if let Ok(text) = response.body.read_string_to_end(&mut buffer) {
         let end = RTC::get();
         info!("Received response from {} in {}s : {}",
@@ -79,7 +76,8 @@ pub fn setup_rtc_updater(queue: Arc<Queue<MessageKind>>) -> Result<Task, FreeRto
     .start(move || {
         if let Ok(_) = queue.receive(Duration::ms(10000)) {
             // We don't really care about failures there.
-            update_rtc();
+            #[allow(unused_must_use)]
+            { update_rtc(); }
         }
     })
 }
