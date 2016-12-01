@@ -15,3 +15,6 @@ pub fn security_params() -> Option<SlSecParams> {
 
 pub const SENSOR_READING_COUNT: u32 = 10;
 pub const SERVER_URL: &'static str = "http://10.252.33.211:8000/endpoint";
+
+// The URL that returns the current time.
+pub const RTC_URL: &'static str = "http://api.bewrosnes.org/";

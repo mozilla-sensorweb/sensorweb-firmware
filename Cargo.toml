@@ -8,6 +8,7 @@ cc3200 = { path = "cc3200-rs" }
 freertos_alloc = { path = "cc3200-rs/freertos_alloc" }
 freertos_rs = "0.1"
 log = { version = "0.3", default-features = false }
+microjson = { path = "microjson" }
 sensorweb-sys = { path = "sensorweb-sys" }
 smallhttp = { git = "https://github.com/fabricedesre/smallhttp.git" }
 
