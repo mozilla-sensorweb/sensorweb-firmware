@@ -7,273 +7,136 @@
 
 extern crate collections;
 
-use collections::string::String;
-use core::convert::From;
-use core::str;
+pub mod json;
 
-#[derive(Debug, PartialEq)]
-pub enum JsonToken {
-    StartObject,
-    EndObject,
-    StartArray,
-    EndArray,
-    PropertyName(String),
-    Literal(String),
-    Done,
-}
+pub use json::*;
 
-#[derive(Debug, PartialEq)]
-pub enum JsonError {
-    UnexpectedCharacter,
-    UnexpecteEof,
-    InvalidString,
-}
+#[cfg(test)]
+mod test {
 
-impl From<JsonError> for () {
-    fn from(_: JsonError) -> () {
-        ()
+    use json::{JsonToken, JsonTokenizer};
+    use collections::String;
+
+    macro_rules! s {
+        ($t:expr) => (String::from($t))
     }
-}
 
+    #[test]
+    fn simple_object() {
+        let text = r#"{"time":1480556487,"isoDate":"2016-12-01T01:41:27Z"}"#;
+        let mut tokenizer = JsonTokenizer::new(&text);
 
-#[derive(Debug, PartialEq)]
-enum TokenizerState {
-    Start,
-    ExpectProperty,
-    ExpectValue,
-    ExpectComma,
-    InArray,
-}
+        let expected = [JsonToken::StartObject,
+                        JsonToken::PropertyName(s!("time")),
+                        JsonToken::Literal(s!("1480556487")),
+                        JsonToken::PropertyName(s!("isoDate")),
+                        JsonToken::Literal(s!("\"2016-12-01T01:41:27Z\"")),
+                        JsonToken::EndObject,
+                        JsonToken::Done];
 
-pub struct JsonTokenizer<'a> {
-    buffer: &'a [u8],
-    len: usize,
-    pos: usize,
-    state: TokenizerState,
-    depth: usize,
-}
-
-macro_rules! eof {
-    ($s:ident) => (
-        if $s.eof() {
-            return Err(JsonError::UnexpecteEof);
-        }
-    )
-}
-
-impl<'a> JsonTokenizer<'a> {
-    pub fn new(text: &'a str) -> Self {
-        let buffer = text.as_bytes();
-        JsonTokenizer {
-            buffer: buffer,
-            len: buffer.len(),
-            pos: 0,
-            state: TokenizerState::Start,
-            depth: 0,
+        for i in 0..expected.len() {
+            assert_eq!(tokenizer.next_token().unwrap(), expected[i]);
         }
     }
 
-    fn eof(&self) -> bool {
-        self.pos >= self.len
-    }
+    #[test]
+    fn simple_array() {
+        let text = r#"[1, "deux", 42 ]"#;
+        let mut tokenizer = JsonTokenizer::new(&text);
 
-    fn next(&mut self) -> Result<u8, JsonError> {
-        let c = self.peek()?;
-        self.pos += 1;
-        Ok(c)
-    }
+        let expected = [JsonToken::StartArray,
+                        JsonToken::Literal(s!("1")),
+                        JsonToken::Literal(s!("\"deux\"")),
+                        JsonToken::Literal(s!("42")),
+                        JsonToken::EndArray,
+                        JsonToken::Done];
 
-    fn peek(&mut self) -> Result<u8, JsonError> {
-        if self.eof() {
-            return Err(JsonError::UnexpecteEof);
-        }
-        let c = self.buffer[self.pos];
-        Ok(c)
-    }
-
-    fn eat_ws(&mut self) {
-        loop {
-            if self.eof() {
-                return;
-            }
-            let c = self.next().unwrap(); // We know this won't panick since we're not eof.
-            if c != b' ' && c != b'\t' && c != b'\r' && c != b'\n' {
-                self.pos -= 1;
-                break;
-            }
+        for i in 0..expected.len() {
+            assert_eq!(tokenizer.next_token().unwrap(), expected[i]);
         }
     }
 
-    // This consumes the delimiter.
-    fn advance_until(&mut self, what: u8) {
-        loop {
-            if self.eof() {
-                return;
-            }
-            // We know this won't panick since we're not eof.
-            if what == self.next().unwrap() {
-                break;
-            }
+    #[test]
+    fn array_in_object() {
+        let text = r#"{"number":1480556487,"array":[1, "deux", 3]}"#;
+        let mut tokenizer = JsonTokenizer::new(&text);
+
+        let expected = [JsonToken::StartObject,
+                        JsonToken::PropertyName(s!("number")),
+                        JsonToken::Literal(s!("1480556487")),
+                        JsonToken::PropertyName(s!("array")),
+                        JsonToken::StartArray,
+                        JsonToken::Literal(s!("1")),
+                        JsonToken::Literal(s!("\"deux\"")),
+                        JsonToken::Literal(s!("3")),
+                        JsonToken::EndArray,
+                        JsonToken::EndObject,
+                        JsonToken::Done];
+
+        for i in 0..expected.len() {
+            assert_eq!(tokenizer.next_token().unwrap(), expected[i]);
         }
     }
 
-    fn in_array(&mut self) -> Result<JsonToken, JsonError> {
-        // Get the next value, which can be a Literal, an Object or an Array.
-        self.eat_ws();
-        eof!(self);
-        // Look for either a comma or the closing tag of the array.
-        let start = self.pos;
-        loop {
-            let c = self.next()?;
-            if c == b',' {
-                let value = str::from_utf8(&self.buffer[start..self.pos - 1]);
-                if value.is_err() {
-                    return Err(JsonError::InvalidString);
-                }
-                return Ok(JsonToken::Literal(String::from(value.unwrap())));
-            } else if c == b']' {
-                if self.pos == start + 1 {
-                    // No new value.
-                    self.depth -= 1;
-                    self.state = TokenizerState::ExpectComma;
-                    return Ok(JsonToken::EndArray);
-                } else {
-                    // Don't eat the array closing, and use what was scanned as the value.
-                    self.pos -= 1;
-                    let value = str::from_utf8(&self.buffer[start..self.pos]);
-                    if value.is_err() {
-                        return Err(JsonError::InvalidString);
-                    }
-                    return Ok(JsonToken::Literal(String::from(value.unwrap())));
-                }
-            }
-        }
-    }
+    #[test]
+    fn sensor_things_response() {
+        let text = r#"{
+  "@iot.id": "1",
+  "@iot.selfLink": "http://localhost:8080/v1.0/Datastreams(1)",
+  "Thing@iot.navigationLink": "http://localhost:8080/v1.0/Datastreams(1)/Thing",
+  "Sensor@iot.navigationLink": "http://localhost:8080/v1.0/Datastreams(1)/Sensor",
+  "ObservedProperty@iot.navigationLink": "http://localhost:8080/v1.0/Datastreams(1)/ObservedProperty",
+  "Observations@iot.navigationLink": "http://localhost:8080/v1.0/Datastreams(1)/Observations",
+  "unitOfMeasurement": {
+    "name": "PM 2.5 Particulates (ug/m3)",
+    "symbol": "μg/m³",
+    "definition": "http://unitsofmeasure.org/ucum.html"
+  },
+  "observationType": "http://www.opengis.net/def/observationType/OGC-OM/2.0/OM_Measurement",
+  "description": "Air quality readings",
+  "name": "air_quality_readings",
+  "observedArea": null
+}"#;
+        let mut tokenizer = JsonTokenizer::new(&text);
 
-    fn start(&mut self) -> Result<JsonToken, JsonError> {
-        // We only support Objects and Arrays as top level constructs.
-        match self.next()? {
-            b'{' => {
-                self.state = TokenizerState::ExpectProperty;
-                self.depth += 1;
-                return Ok(JsonToken::StartObject);
-            }
-            b'[' => {
-                self.state = TokenizerState::InArray;
-                self.depth += 1;
-                return Ok(JsonToken::StartArray);
-            }
-            _ => return Err(JsonError::UnexpectedCharacter),
-        }
-    }
+        let expected =
+            [JsonToken::StartObject,
+             JsonToken::PropertyName(s!("@iot.id")),
+             JsonToken::Literal(s!("\"1\"")),
+             JsonToken::PropertyName(s!("@iot.selfLink")),
+             JsonToken::Literal(s!("\"http://localhost:8080/v1.0/Datastreams(1)\"")),
+             JsonToken::PropertyName(s!("Thing@iot.navigationLink")),
+             JsonToken::Literal(s!("\"http://localhost:8080/v1.0/Datastreams(1)/Thing\"")),
+             JsonToken::PropertyName(s!("Sensor@iot.navigationLink")),
+             JsonToken::Literal(s!("\"http://localhost:8080/v1.0/Datastreams(1)/Sensor\"")),
+             JsonToken::PropertyName(s!("ObservedProperty@iot.navigationLink")),
+             JsonToken::Literal(s!("\"http://localhost:8080/v1.\
+                                    0/Datastreams(1)/ObservedProperty\"")),
+             JsonToken::PropertyName(s!("Observations@iot.navigationLink")),
+             JsonToken::Literal(s!("\"http://localhost:8080/v1.0/Datastreams(1)/Observations\"")),
+             JsonToken::PropertyName(s!("unitOfMeasurement")),
+             JsonToken::StartObject,
+             JsonToken::PropertyName(s!("name")),
+             JsonToken::Literal(s!("\"PM 2.5 Particulates (ug/m3)\"")),
+             JsonToken::PropertyName(s!("symbol")),
+             JsonToken::Literal(s!("\"μg/m³\"")),
+             JsonToken::PropertyName(s!("definition")),
+             JsonToken::Literal(s!("\"http://unitsofmeasure.org/ucum.html\"")),
+             JsonToken::EndObject,
+             JsonToken::PropertyName(s!("observationType")),
+             JsonToken::Literal(s!("\"http://www.opengis.net/def/observationType/OGC-OM/2.\
+                                    0/OM_Measurement\"")),
+             JsonToken::PropertyName(s!("description")),
+             JsonToken::Literal(s!("\"Air quality readings\"")),
+             JsonToken::PropertyName(s!("name")),
+             JsonToken::Literal(s!("\"air_quality_readings\"")),
+             JsonToken::PropertyName(s!("observedArea")),
+             JsonToken::Null,
+             JsonToken::EndObject,
+             JsonToken::Done];
 
-    fn expect_value(&mut self) -> Result<JsonToken, JsonError> {
-        // Check if this value is an Object, an Array or a Literal
-        match self.next()? {
-            b'{' => {
-                self.state = TokenizerState::ExpectProperty;
-                self.depth += 1;
-                return Ok(JsonToken::StartObject);
-            }
-            b'[' => {
-                self.state = TokenizerState::InArray;
-                self.depth += 1;
-                return Ok(JsonToken::StartArray);
-            }
-            b'}' => {
-                self.state = TokenizerState::ExpectProperty;
-                self.depth -= 1;
-                return Ok(JsonToken::EndObject);
-            }
-            _ => {
-                // It's a Literal.
-                let start = self.pos - 1;
-                let end;
-                // We need to reach either a `,` or a `}`
-                loop {
-                    let c = self.next()?;
-                    if c == b',' {
-                        end = self.pos - 1;
-                        self.state = TokenizerState::ExpectProperty;
-                        break;
-                    }
-                    if c == b'}' {
-                        self.pos -= 1;
-                        end = self.pos;
-                        break;
-                    }
-                }
-
-                let value = str::from_utf8(&self.buffer[start..end]);
-                if value.is_err() {
-                    return Err(JsonError::InvalidString);
-                }
-
-                return Ok(JsonToken::Literal(String::from(value.unwrap())));
-            }
-        }
-    }
-
-    fn expect_comma(&mut self) -> bool {
-        self.eat_ws();
-        if self.eof() {
-            return false;
-        }
-        if self.next().unwrap() == b',' {
-            self.state = TokenizerState::ExpectProperty;
-            return true;
-        }
-        false
-    }
-
-    fn expect_property(&mut self) -> Result<JsonToken, JsonError> {
-        self.eat_ws();
-
-        let c = self.next()?;
-        // If the first character is no a `"` something is wrong.
-        if c != b'"' {
-            return Err(JsonError::UnexpectedCharacter);
-        }
-        // Look for the next `"` and for a `:`
-        let start = self.pos;
-        self.advance_until(b'"');
-        eof!(self);
-        let value = str::from_utf8(&self.buffer[start..self.pos - 1]);
-        if value.is_err() {
-            return Err(JsonError::InvalidString);
-        }
-        // Look for the `:`
-        self.eat_ws();
-        self.advance_until(b':');
-        self.eat_ws();
-        eof!(self);
-        self.state = TokenizerState::ExpectValue;
-        Ok(JsonToken::PropertyName(String::from(value.unwrap())))
-    }
-
-    pub fn next_token(&mut self) -> Result<JsonToken, JsonError> {
-        self.eat_ws();
-        if self.depth == 0 && self.state != TokenizerState::Start {
-            return Ok(JsonToken::Done);
-        }
-
-        if self.eof() && self.state == TokenizerState::Start {
-            return Ok(JsonToken::Done);
-        }
-        eof!(self);
-
-        match self.state {
-            TokenizerState::Start => self.start(),
-            TokenizerState::ExpectProperty => self.expect_property(),
-            TokenizerState::ExpectValue => self.expect_value(),
-            TokenizerState::InArray => self.in_array(),
-            TokenizerState::ExpectComma => {
-                if self.expect_comma() {
-                    self.next_token()
-                } else {
-                    Err(JsonError::UnexpectedCharacter)
-                }
-            }
+        for i in 0..expected.len() {
+            assert_eq!(tokenizer.next_token().unwrap(), expected[i]);
         }
     }
 }

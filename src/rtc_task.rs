@@ -40,7 +40,7 @@ fn update_rtc() -> Result<(), ()> {
         let mut tokenizer = JsonTokenizer::new(&text);
         loop {
             let token = tokenizer.next_token()?;
-            info!("Token: |{:?}|", token);
+            debug!("Token: |{:?}|", token);
             match token {
                 JsonToken::PropertyName(prop_name) => {
                     info!("prop_name is {}", prop_name);
@@ -50,11 +50,6 @@ fn update_rtc() -> Result<(), ()> {
                                 info!("Setting RTC to {}", value);
                                 if let Ok(seconds) = value.parse::<u64>() {
                                     RTC::set(seconds as i64);
-                                    // DEBUG: verify we get the same date back in ISO format.
-                                    let mut buf: [u8; 24] = [0; 24];
-                                    let tm = Tm::gmtime(RTC::get());
-                                    tm.format_iso_into(&mut buf);
-                                    info!("RTC = {}", str::from_utf8(&buf).unwrap());
                                     break;
                                 }
                             }

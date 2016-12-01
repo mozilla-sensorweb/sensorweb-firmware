@@ -51,14 +51,6 @@ mod config;
 mod rtc_task;
 mod wlan;
 
-fn buf_find(buf: &[u8], needle: &str) -> Option<usize> {
-    if let Ok(s) = str::from_utf8(buf) {
-        s.find(needle)
-    } else {
-        None
-    }
-}
-
 fn run(queue: Arc<Queue<MessageKind>>) -> Result<(), wlan::Error> {
 
     Board::led_configure(&[LedEnum::LED1]);
@@ -73,48 +65,9 @@ fn run(queue: Arc<Queue<MessageKind>>) -> Result<(), wlan::Error> {
             .and_then(|_| queue.send(MessageKind::UpdateRtc, Duration::ms(15)));
     }
 
-    // FIXME: remove.
-    loop {}
-
-    let i2c = I2C::open(I2COpenMode::MasterModeFst).unwrap();
-    let temp_sensor = TMP006::default(&i2c).unwrap();
-
-    println!("Will now send {} temperature sensing to the server...",
-             config::SENSOR_READING_COUNT);
-
-    for _ in 0..config::SENSOR_READING_COUNT {
-        let temperature = temp_sensor.get_temperature().unwrap();
-
-        // Format a simple json payload that we'll POST to the server
-        let mut buf: [u8; 24] = [b' '; 24];
-        let json = b"{ \"temperature\": @@@@@ }";
-        buf[0..json.len()].copy_from_slice(json);
-        let num_tmpl = "@@@@@";
-        let num_idx = buf_find(&buf, num_tmpl).unwrap();
-        if format_float_into(&mut buf[num_idx..num_idx + num_tmpl.len()],
-                             temperature,
-                             1 /* digit after decimal */) {
-            info!("Feels like {} C",
-                  str::from_utf8(&buf[num_idx..num_idx + num_tmpl.len()]).unwrap());
-            info!("Sending {}", str::from_utf8(&buf).unwrap());
-
-            let mut client = Client::new(SocketChannel::new().unwrap());
-            let response = client.post(config::SERVER_URL)
-                .open()
-                .unwrap()
-                .send(json)
-                .unwrap()
-                .response(|_| false) // Not interested in any header.
-                .unwrap();
-            let mut buffer = [0u8; 256];
-            info!("Received {}",
-                  response.body.read_string_to_end(&mut buffer).unwrap());
-        } else {
-            error!("Failed to format temperature float.");
-        }
-
-
-        CurrentTask::delay(Duration::ms(1000))
+    loop {
+        println!("sleep");
+        CurrentTask::delay(Duration::ms(10000));
     }
 
     // Power off the network processor.

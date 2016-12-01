@@ -15,3 +15,6 @@ arm-none-eabi-gcc --version
 cp src/config.rs.sample src/config.rs
 ./build.sh
 ./build.sh --release
+
+# Run the microjson tests
+cd microjson && cargo test
