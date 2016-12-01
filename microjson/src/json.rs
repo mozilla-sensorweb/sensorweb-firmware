@@ -172,12 +172,12 @@ impl<'a> JsonTokenizer<'a> {
             b'{' => {
                 self.state = TokenizerState::ExpectProperty;
                 self.depth += 1;
-                return Ok(JsonToken::StartObject);
+                Ok(JsonToken::StartObject)
             }
             b'[' => {
                 self.state = TokenizerState::InArray;
                 self.depth += 1;
-                return Ok(JsonToken::StartArray);
+                Ok(JsonToken::StartArray)
             }
             b'}' => {
                 self.eat_ws();
@@ -186,7 +186,7 @@ impl<'a> JsonTokenizer<'a> {
                 }
                 self.state = TokenizerState::ExpectProperty;
                 self.depth -= 1;
-                return Ok(JsonToken::EndObject);
+                Ok(JsonToken::EndObject)
             }
             _ => {
                 // It's a Literal.
@@ -207,7 +207,7 @@ impl<'a> JsonTokenizer<'a> {
                     }
                 }
 
-                return self.as_literal(&self.buffer[start..end]);
+                self.as_literal(&self.buffer[start..end])
             }
         }
     }
@@ -271,7 +271,7 @@ impl<'a> JsonTokenizer<'a> {
                             }
                         }
                         self.state = TokenizerState::ExpectProperty;
-                        return Ok(JsonToken::EndObject);
+                        Ok(JsonToken::EndObject)
                     }
                     b',' => {
                         self.state = TokenizerState::ExpectProperty;
