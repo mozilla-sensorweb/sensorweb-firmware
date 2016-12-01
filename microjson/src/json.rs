@@ -90,13 +90,9 @@ impl<'a> JsonTokenizer<'a> {
     }
 
     fn eat_ws(&mut self) {
-        loop {
-            if let Ok(c) = self.next() {
-                if c != b' ' && c != b'\t' && c != b'\r' && c != b'\n' {
-                    self.pos -= 1;
-                    break;
-                }
-            } else {
+        while let Ok(c) = self.next() {
+            if c != b' ' && c != b'\t' && c != b'\r' && c != b'\n' {
+                self.pos -= 1;
                 return;
             }
         }
@@ -104,12 +100,8 @@ impl<'a> JsonTokenizer<'a> {
 
     // This consumes the delimiter.
     fn advance_until(&mut self, what: u8) {
-        loop {
-            if let Ok(c) = self.next() {
-                if c == what {
-                    break;
-                }
-            } else {
+        while let Ok(c) = self.next() {
+            if c == what {
                 return;
             }
         }
