@@ -8,29 +8,25 @@
 use alloc::arc::Arc;
 use cc3200::rtc::RTC;
 use cc3200::socket_channel::SocketChannel;
+use cc3200::time::Tm;
+use collections::String;
 use config;
+use core::str;
 use freertos_rs::{Duration, FreeRtosError, Task, Queue};
-use simple_json::Json;
-use smallhttp::Client;
+use microjson::{JsonToken, JsonTokenizer};
+use MessageKind;
+use smallhttp::{Client, HttpHeader};
 use smallhttp::traits::Channel;
 
-fn update_rtc() {
+fn update_rtc() -> Result<(), ()> {
     info!("Checking time from server at {}", config::RTC_URL);
-
-    // let text = "{\"time\":1480457702,\"isoDate\":\"2016-11-29T22:15:02Z\"}";
-    // let result = Json::parse(text).unwrap();
-    // info!("parsed : {:?}", result);
-    // return;
 
     let start = RTC::get();
     let mut client = Client::new(SocketChannel::new().unwrap());
     let response = client.get(config::RTC_URL)
-        .open()
-        .unwrap()
-        .send(&[])
-        .unwrap()
-        .response(|_| false)
-        .unwrap();
+        .open()?
+        .header(HttpHeader::Connection, "close")?
+        .response(|_| false)?;
 
     let mut buffer = [0u8; 128];
     let len = buffer.len();
@@ -40,21 +36,54 @@ fn update_rtc() {
               config::RTC_URL,
               end - start,
               text);
-        let result = Json::parse(text).unwrap();
+        // We receive a json string like : {"time":1480556487,"isoDate":"2016-12-01T01:41:27Z"}
+        let mut tokenizer = JsonTokenizer::new(&text);
+        loop {
+            let token = tokenizer.next_token()?;
+            info!("Token: |{:?}|", token);
+            match token {
+                JsonToken::PropertyName(prop_name) => {
+                    info!("prop_name is {}", prop_name);
+                    if prop_name == "time" {
+                        match tokenizer.next_token()? {
+                            JsonToken::Literal(value) => {
+                                info!("Setting RTC to {}", value);
+                                if let Ok(seconds) = value.parse::<u64>() {
+                                    RTC::set(seconds as i64);
+                                    // DEBUG: verify we get the same date back in ISO format.
+                                    let mut buf: [u8; 24] = [0; 24];
+                                    let tm = Tm::gmtime(RTC::get());
+                                    tm.format_iso_into(&mut buf);
+                                    info!("RTC = {}", str::from_utf8(&buf).unwrap());
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                JsonToken::Done => {
+                    break;
+                }
+                _ => {}
+            }
+        }
     } else {
         error!("Failed to read answer from {}", config::RTC_URL);
+        return Err(());
     }
-
+    Ok(())
 }
 
 // We use the message queue just as wakeup signal, so we don't queue message
 // is not important.
-pub fn setup_rtc_updater(queue: Arc<Queue<u8>>) -> Result<Task, FreeRtosError> {
+pub fn setup_rtc_updater(queue: Arc<Queue<MessageKind>>) -> Result<Task, FreeRtosError> {
     Task::new()
     .name("rtc_updater")
     .stack_size(2048) // 32-bit words
     .start(move || {
         if let Ok(_) = queue.receive(Duration::ms(10000)) {
+            // We don't really care about failures there.
             update_rtc();
         }
     })

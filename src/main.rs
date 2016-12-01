@@ -16,7 +16,7 @@ extern crate cc3200;
 extern crate alloc;
 extern crate freertos_rs;
 extern crate freertos_alloc;
-extern crate simple_json;
+extern crate microjson;
 extern crate smallhttp;
 
 #[macro_use]
@@ -42,6 +42,11 @@ use smallhttp::traits::Channel;
 
 static VERSION: &'static str = "1.0";
 
+#[derive(Clone, Copy)]
+pub enum MessageKind {
+    UpdateRtc,
+}
+
 mod config;
 mod rtc_task;
 mod wlan;
@@ -54,7 +59,7 @@ fn buf_find(buf: &[u8], needle: &str) -> Option<usize> {
     }
 }
 
-fn run() -> Result<(), wlan::Error> {
+fn run(queue: Arc<Queue<MessageKind>>) -> Result<(), wlan::Error> {
 
     Board::led_configure(&[LedEnum::LED1]);
 
@@ -62,9 +67,11 @@ fn run() -> Result<(), wlan::Error> {
     try!(wlan::wlan_station_mode());
 
     // Wifi is up, set up the RTC task and ask for an update.
-    let rtc_queue = Arc::new(Queue::new(10).unwrap());
-    rtc_task::setup_rtc_updater(rtc_queue.clone())
-        .and_then(|_| rtc_queue.send(0, Duration::ms(15)));
+    #[allow(unused_must_use)]
+    {
+        rtc_task::setup_rtc_updater(queue.clone())
+            .and_then(|_| queue.send(MessageKind::UpdateRtc, Duration::ms(15)));
+    }
 
     // FIXME: remove.
     loop {}
@@ -129,12 +136,14 @@ pub fn start() -> ! {
 
     println!("Welcome to SensorWeb {}", VERSION);
 
+    let queue = Arc::new(Queue::new(10).unwrap());
+
     let _client = {
         Task::new()
             .name("client")
             .stack_size(2048) // 32-bit words
             .start(|| {
-                match run() {
+                match run(queue) {
                     Ok(())  => { println!("sensorweb succeeded"); },
                     Err(e)  => { println!("sensorweb failed: {:?}", e); },
                 };
