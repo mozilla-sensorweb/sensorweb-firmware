@@ -1,11 +1,16 @@
 # Helper script used by build.sh, run.sh, and flash.sh for parsing arguments
 
 OPT=debug
+PORT=/dev/ttyUSB1
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --release)
             OPT=release
+            ;;
+        --port)
+            shift
+            PORT=$1
             ;;
     esac
     shift
